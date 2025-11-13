@@ -2,10 +2,9 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = "node-app"
-        REGISTRY = "harbor.cubastion.net"
-        PROJECT = "test"
-        FULL_IMAGE = "${REGISTRY}/${PROJECT}/${IMAGE}"
+        DOCKER_USER = "anchitguptacubastion"
+        IMAGE = "node-app"
+        FULL_IMAGE = "docker.io/${DOCKER_USER}/${IMAGE}"
 
     }
 
@@ -13,7 +12,7 @@ pipeline {
 
         stage("Checkout Code") {
             steps {
-                git "https://github.com/anchitguptacubastion/node-app"
+                git branch: 'main', url: 'https://github.com/anchitguptacubastion/node-app'
             }
         }
 
@@ -26,15 +25,21 @@ pipeline {
             }
         }
 
-        stage("Login to Harbor") {
-            steps {
-                sh """
-                echo $HARBOR_PASS | docker login ${REGISTRY} -u $HARBOR_USER --password-stdin
-                """
+        stage("Login to Docker Hub") {
+    steps {
+        withCredentials([usernamePassword(
+            credentialsId: 'DOCKER_HUB_CREDS',
+            usernameVariable: 'DOCKERHUB_USER',
+            passwordVariable: 'DOCKERHUB_PASS'
+                )]) {
+                    sh """
+                    echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USER" --password-stdin
+                    """
+                }
             }
         }
 
-        stage("Push to Harbor") {
+        stage("Push to Docker Hub") {
             steps {
                 sh """
                 docker push ${FULL_IMAGE}:${BUILD_NUMBER}
@@ -53,6 +58,6 @@ pipeline {
         //         "
         //         """
         //     }
-        // }
+        // } 
     }
 }
